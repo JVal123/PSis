@@ -128,21 +128,21 @@ Astronaut *find_astronaut_by_id(Astronaut astronauts[], int num_astronauts, char
 
 void update_astronaut(Astronaut *astronaut, Message *msg) {
 
-    printf("\rSelected Astronaut: %c", astronaut->id);
-    printf("\rAstronaut (x, y) before update: (%i, %i)", astronaut->x, astronaut->y);
+    printf("\rSelected Astronaut: %c\n", astronaut->id);
+    printf("\rAstronaut (x, y) before update: (%i, %i)\n", astronaut->x, astronaut->y);
 
     astronaut->x += msg->x;
     astronaut->y += msg->y;
 
-    printf("\rAstronaut (x, y) after update: (%i, %i)", astronaut->x, astronaut->y);
+    printf("\rAstronaut (x, y) after update: (%i, %i)\n", astronaut->x, astronaut->y);
 }
 
 
 // Sends the game state to all connected displays
-void send_game_state(void *socket) {
-    Message msg = {OUTER_SPACE_UPDATE, 0, 0, 0, 0};
-    zmq_send(socket, &msg, sizeof(msg), ZMQ_DONTWAIT);
-}
+//void send_game_state(void *socket) {
+//    Message msg = {OUTER_SPACE_UPDATE, 0, 0, 0, 0};
+//    zmq_send(socket, &msg, sizeof(msg), ZMQ_DONTWAIT);
+//}
 
 void game_loop(void *context) {
     void *socket = zmq_socket(context, ZMQ_REP);
