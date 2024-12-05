@@ -131,8 +131,15 @@ void update_astronaut(Astronaut *astronaut, Message *msg) {
     printf("\rSelected Astronaut: %c\n", astronaut->id);
     printf("\rAstronaut (x, y) before update: (%i, %i)\n", astronaut->x, astronaut->y);
 
-    astronaut->x += msg->x;
-    astronaut->y += msg->y;
+    if ((msg->y == -1 && astronaut->y > 3) || (msg->y == 1 && astronaut->y < 18) || 
+        (msg->x == -1 && astronaut->x > 3) || (msg->x == 1 && astronaut->x < 18)) { 
+        if (astronaut->id == 'A' || astronaut->id == 'C' || astronaut->id == 'E' || astronaut->id == 'G') {
+        astronaut->y += msg->y; //Only changes the position verticaly
+        }
+        else if (astronaut->id == 'B' || astronaut->id == 'D' || astronaut->id == 'F' || astronaut->id == 'H') {
+            astronaut->x += msg->x; //Only changes the position horizontaly
+        }
+    }
 
     printf("\rAstronaut (x, y) after update: (%i, %i)\n", astronaut->x, astronaut->y);
 }

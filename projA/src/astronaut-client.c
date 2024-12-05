@@ -14,19 +14,23 @@ void handle_input(void *socket, char astronaut_id) {
         switch (ch) {
             case KEY_UP:
                 msg.type = ASTRONAUT_MOVEMENT;
+                msg.x = 0;
                 msg.y = -1; // Move up
                 break;
             case KEY_DOWN:
                 msg.type = ASTRONAUT_MOVEMENT;
                 msg.y = 1; // Move down
+                msg.x = 0;
                 break;
             case KEY_LEFT:
                 msg.type = ASTRONAUT_MOVEMENT;
                 msg.x = -1; // Move left
+                msg.y = 0;
                 break;
             case KEY_RIGHT:
                 msg.type = ASTRONAUT_MOVEMENT;
                 msg.x = 1; // Move right
+                msg.y = 0;
                 break;
             case ' ':
                 msg.type = ASTRONAUT_ZAP; // Fire laser
