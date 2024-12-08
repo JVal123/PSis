@@ -8,10 +8,12 @@
 // Socket addresses for server and client communication
 #define SOCKET_ADDRESS_SERVER_C "tcp://*:5556"
 #define SOCKET_ADDRESS_SERVER_D "tcp://*:5555"
+#define SOCKET_ADDRESS_PARENT "tcp://*:5557"
 #define SOCKET_ADDRESS_CLIENT  "tcp://localhost:5556"
 #define SOCKET_ADDRESS_DISPLAY "tcp://localhost:5555"
+#define SOCKET_ADDRESS_CHILD "tcp://localhost:5557"
 
-//#define MAX_ALIENS (GRID_SIZE * GRID_SIZE / 3) // Maximum number of aliens allowed in the game
+//#define MAX_ALIENS ((GRID_SIZE-2) * (GRID_SIZE-2) / 3) // Maximum number of aliens allowed in the game
 #define MAX_ALIENS 4
 
 // Structure to represent an astronaut's data
@@ -51,5 +53,13 @@ typedef struct {
     char arena_grid[GRID_SIZE][GRID_SIZE]; // Grid representing the arena window
     char score_grid[GRID_SIZE][GRID_SIZE]; // Grid representing the score window
 } Update_Message;
+
+
+// Structure to 
+typedef struct {
+    Alien aliens[MAX_ALIENS];
+    bool occupied[20][20];
+    int num_aliens;
+} AlienData;
 
 #endif //DEFINITIONS_H
