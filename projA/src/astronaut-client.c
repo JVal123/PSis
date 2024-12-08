@@ -10,7 +10,7 @@ void handle_input(void *socket, char astronaut_id) {
     Message msg = {0, 0, 0, 0, 0};
     msg.astronaut_id = astronaut_id;
 
-    while ((ch = getch()) != 'q') {
+    while (((ch = getch()) != 'q') && ((ch = getch()) != 'Q')) {
         switch (ch) {
             case KEY_UP:
                 msg.type = ASTRONAUT_MOVEMENT;
@@ -69,7 +69,7 @@ int main() {
     zmq_recv(socket, &msg, sizeof(msg), 0);
 
     char astronaut_id = msg.astronaut_id;
-    int score = msg.score;
+    //int score = msg.score;
     //mvprintw(0, 0, "Connected as astronaut %c with score %i\n", astronaut_id, score);
     mvprintw(0, 0, "Connected as astronaut %c\n", astronaut_id);
     refresh();

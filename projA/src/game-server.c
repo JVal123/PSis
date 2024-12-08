@@ -13,6 +13,7 @@ Alien aliens[MAX_ALIENS];
 int num_aliens;
 char identifiers[8] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
 
+//At the moment, astronaut positions are being initialized as 1-based and aliens position as 0-based. Which one is correct?
 
 void define_initial_position(int *counter, Astronaut *astronaut) {
     // Astronauts initial positions are defined based on their id
@@ -201,7 +202,7 @@ void game_loop(void *context) {
     zmq_bind(socket, SOCKET_ADDRESS_SERVER_C);
 
     void *pub_socket = zmq_socket(context, ZMQ_PUB);
-    zmq_bind(pub_socket, "tcp://*:5555");
+    zmq_bind(pub_socket, SOCKET_ADDRESS_SERVER_D);
     usleep(1000000);
 
     Message msg;

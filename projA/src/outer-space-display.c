@@ -47,13 +47,13 @@ void draw(Update_Message *msg) {
 
     for (int i = 0; i < astronaut_count; i++) {
         // Place the astronaut at the updated position
-        mvwaddch(arena_win, astronauts[i].x, astronauts[i].y, astronauts[i].id);
+        mvwaddch(arena_win, astronauts[i].y, astronauts[i].x, astronauts[i].id);
     }
 
     
     // Draw the aliens as '*' in the arena window
     for (int i = 0; i < msg->alien_count; i++) {
-        mvwaddch(arena_win, msg->aliens[i].x, msg->aliens[i].y, '*');
+        mvwaddch(arena_win, msg->aliens[i].y, msg->aliens[i].x, '*');
     }
 
     wrefresh(arena_win);
@@ -79,23 +79,23 @@ void zap(Astronaut *astronaut, Update_Message*msg){
         int occupied_h = 0;
 
         for (int j = 0; j < msg->alien_count; j++) {
-            if(astronaut->id=='A'||astronaut->id=='C'||astronaut->id=='E'||astronaut->id=='G'){
-                if (msg->aliens[j].y == astronaut->y && msg->aliens[j].x == i) {
+            if(astronaut->id=='B'||astronaut->id=='D'||astronaut->id=='F'||astronaut->id=='H'){
+                if (msg->aliens[j].y == i && msg->aliens[j].x == astronaut->x) {
                     occupied_v = 1;
                 }
             }
-            if(astronaut->id=='B'||astronaut->id=='D'||astronaut->id=='F'||astronaut->id=='H'){
-                if (msg->aliens[j].x == astronaut->x && msg->aliens[j].y == i) {
+            if(astronaut->id=='A'||astronaut->id=='C'||astronaut->id=='E'||astronaut->id=='G'){
+                if (msg->aliens[j].x == i && msg->aliens[j].y == astronaut->y) {
                     occupied_h = 1;
                 }
             }
             
         }
-        if (!occupied_h&&(astronaut->id=='B'||astronaut->id=='D'||astronaut->id=='F'||astronaut->id=='H')) {
-            mvwaddch(arena_win, astronaut->x, i, '-');
+        if (!occupied_h&&(astronaut->id=='A'||astronaut->id=='C'||astronaut->id=='E'||astronaut->id=='G')) {
+            mvwaddch(arena_win, astronaut->y, i, '-');
         }
-        if (!occupied_v&&(astronaut->id=='A'||astronaut->id=='C'||astronaut->id=='E'||astronaut->id=='G')) {
-            mvwaddch(arena_win, i, astronaut->y, '|');
+        if (!occupied_v&&(astronaut->id=='B'||astronaut->id=='D'||astronaut->id=='F'||astronaut->id=='H')) {
+            mvwaddch(arena_win, i, astronaut->x,  '|');
         }
     }
     wrefresh(arena_win);
