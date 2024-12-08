@@ -17,6 +17,7 @@ typedef struct {
     int x, y;
     int score;
     int active;
+    time_t last_zap, end_stun;
 } Astronaut;
 
 typedef struct {
@@ -32,12 +33,6 @@ typedef enum {
     OUTER_SPACE_UPDATE
 } MessageType;
 
-// Message types
-typedef enum {
-    ZAP,
-    MOVEMENT
-} UpdateType;
-
 // Message structure
 typedef struct {
     MessageType type;
@@ -49,10 +44,7 @@ typedef struct {
 
 // Update Structure
 typedef struct {
-    UpdateType update_type;
-    char astronaut_id;
-    int x, y, score, alien_count;
-    Alien aliens[MAX_ALIENS];
+    char arena_grid[GRID_SIZE][GRID_SIZE], score_grid[GRID_SIZE][GRID_SIZE];
 } Update_Message;
 
-#endif // DEFINITIONS_H
+#endif //DEFINITIONS_H

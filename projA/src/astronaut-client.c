@@ -6,11 +6,12 @@
 #include "definitions.h"
 
 void handle_input(void *socket, char astronaut_id) {
-    int ch;
+    int ch = getch();
     Message msg = {0, 0, 0, 0, 0};
     msg.astronaut_id = astronaut_id;
 
-    while (((ch = getch()) != 'q') && ((ch = getch()) != 'Q')) {
+    while ((ch != 'q') && (ch != 'Q')) {
+        
         switch (ch) {
             case KEY_UP:
                 msg.type = ASTRONAUT_MOVEMENT;
@@ -37,14 +38,16 @@ void handle_input(void *socket, char astronaut_id) {
                 break;
             default:
                 continue;
+            
         }
-
         zmq_send(socket, &msg, sizeof(msg), 0);
         zmq_recv(socket, &msg, sizeof(msg), 0);
 
         // Display updated score
         mvprintw(1, 0, "Score: %d\n", msg.score);
         refresh();
+
+        ch = getch();
     }
 
     // Send disconnect message
