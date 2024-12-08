@@ -5,76 +5,121 @@
 #include "definitions.h"
 #include <unistd.h>
 
-// Global variables
-WINDOW *arena_win;
-WINDOW *score_win;
-char arena_grid[GRID_SIZE][GRID_SIZE];
-char score_grid[GRID_SIZE][GRID_SIZE];
+WINDOW *arena_win; // Window for displaying the arena
+WINDOW *score_win;           // Window for displaying the scores
+char arena_grid[GRID_SIZE][GRID_SIZE];  // Array representing the arena grid
+char score_grid[GRID_SIZE][GRID_SIZE];  // Array representing the score grid
 
 int main() {
     
+    // Create a ZeroMQ context and a subscriber socket
     void *context = zmq_ctx_new();
-    void *subscriber = zmq_socket(context, ZMQ_SUB);
-    
+    if (context == NULL) {
+        perror("Error creating ZeroMQ context");
+        return 1;
+    }
 
-    zmq_connect(subscriber, "tcp://localhost:5555");
- 
-    zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "", 0);
+    void *subscriber = zmq_socket(context, ZMQ_SUB);
+    if (subscriber == NULL) {
+        perror("Failed to create SUB socket");
+        zmq_ctx_destroy(context);  // Clean up before exiting
+        return 1;
+    }
+
+    // Connect to the server to receive updates
+    if (zmq_connect(subscriber, "tcp://localhost:5555") != 0) {
+        perror("Failed to connect SUB socket");
+        zmq_close(subscriber);
+        zmq_ctx_destroy(context);
+        return 1; 
+    }
+
+    // Set the socket to subscribe to all messages
+    if (zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "", 0) != 0) {
+        perror("Failed to subscribe SUB socket to all messages");
+        zmq_close(subscriber);
+        zmq_ctx_destroy(context);
+        return 1;
+    }
+
     
-    Update_Message msg;
+    Update_Message msg; // Structure to hold the update message
   
-    // initialize ncurses
+    // Initialize the ncurses library for terminal handling
     initscr();
     cbreak();
     noecho();
     curs_set(FALSE);
 
-    // write the numbers 
+    // Write numbers along the grid's borders (for labeling)
     for (int i = 1; i <= GRID_SIZE; i++) {
         mvprintw(i+1, 0, "%d", i % 10);
         mvprintw(0, i+1, "%d", i % 10);
     }
 
     // Create windows and draw borders
+    // Create windows for the arena and score display
     arena_win = newwin(GRID_SIZE+2, GRID_SIZE+2, 1, 1);
+    if (arena_win == NULL) {
+        perror("Error creating arena window");
+        endwin();
+        return 1;
+    }
     box(arena_win, 0, 0);
     score_win = newwin(GRID_SIZE+2, GRID_SIZE+2, 1, GRID_SIZE + 5);
+    if (score_win == NULL) {
+        perror("Error creating score window");
+        delwin(arena_win);  // Clean up the previously created window
+        endwin();
+        return 1;
+    }
     box(score_win, 0, 0);
 
+    // Refresh and windows to reflect changes
     refresh();
     wrefresh(arena_win);
     wrefresh(score_win);
 
+    // Initialize the arena and score grids with empty spaces
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
-            arena_grid[i][j] = ' ';  // Initialize with spaces
-            score_grid[i][j] = ' ';
+            arena_grid[i][j] = ' ';
+            score_grid[i][j] = ' '; 
         }
     }
 
+    // Main game loop to handle incoming updates
     while (1) {
-        zmq_recv(subscriber, &msg, sizeof(msg), 0); // Receive a message
-
-       for(int i=1; i<GRID_SIZE; i++){
+       // Receive the update message from the publisher (server)
+        int recv_size = zmq_recv(subscriber, &msg, sizeof(msg), 0);
+        if (recv_size == -1) {
+            perror("Failed to receive message");
+            break;
+        }
+        // Update the arena and score grids based on the received message
+        for(int i=1; i<GRID_SIZE; i++){
             for(int j=1; j<GRID_SIZE; j++){
                 if(arena_grid[i][j]!=msg.arena_grid[i][j]){
                     arena_grid[i][j]=msg.arena_grid[i][j];
-                    wmove(arena_win,i,j);
-                    waddch(arena_win, arena_grid[i][j]);
+                    wmove(arena_win,i,j); // Move cursor to the new position
+                    waddch(arena_win, arena_grid[i][j]); // Add the character to the window
                 }
                 if(score_grid[i][j]!=msg.score_grid[i][j]){
                     score_grid[i][j]=msg.score_grid[i][j];
-                    wmove(score_win,i,j);
-                    waddch(score_win, score_grid[i][j]);
+                    wmove(score_win,i,j); // Move cursor to the new position
+                    waddch(score_win, score_grid[i][j]); // Add the character to the window
                 }              
             }
         }
+        // Refresh windows to reflect the updates
         wrefresh(arena_win);
         wrefresh(score_win);
     }
 
+    // Cleanup and close ZeroMQ socket and context
     zmq_close(subscriber);
     zmq_ctx_destroy(context);
+    // End ncurses mode
     endwin();
 
     return 0;

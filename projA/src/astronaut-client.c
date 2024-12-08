@@ -3,6 +3,8 @@
 #include <zmq.h>
 #include <ncurses.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include "definitions.h"
 
 void handle_input(void *socket, char astronaut_id) {
@@ -70,6 +72,15 @@ int main() {
     Message msg = {ASTRONAUT_CONNECT, 0, 0, 0, 0};
     zmq_send(socket, &msg, sizeof(msg), 0);
     zmq_recv(socket, &msg, sizeof(msg), 0);
+    if (msg.type == REFUSED_CONNECTION){
+        mvprintw(0, 0, "Max #players reached.");
+        refresh();
+        usleep(5000000);
+        zmq_close(socket);
+        zmq_ctx_destroy(context);
+        endwin();
+        exit(1);
+    }
 
     char astronaut_id = msg.astronaut_id;
     //int score = msg.score;
