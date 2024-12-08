@@ -43,7 +43,7 @@ void handle_input(void *socket, char astronaut_id) {
         zmq_recv(socket, &msg, sizeof(msg), 0);
 
         // Display updated score
-        mvprintw(1, 0, "Score: %d", msg.score);
+        mvprintw(1, 0, "Score: %d\n", msg.score);
         refresh();
     }
 
@@ -70,7 +70,8 @@ int main() {
 
     char astronaut_id = msg.astronaut_id;
     int score = msg.score;
-    mvprintw(0, 0, "Connected as astronaut %c with score %i\n", astronaut_id, score);
+    //mvprintw(0, 0, "Connected as astronaut %c with score %i\n", astronaut_id, score);
+    mvprintw(0, 0, "Connected as astronaut %c\n", astronaut_id);
     refresh();
 
     // Handle user input
