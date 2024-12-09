@@ -7,12 +7,14 @@
 #include <unistd.h>
 #include "definitions.h"
 
-void handle_input(void *socket, char astronaut_id) {
+void handle_input(void *socket, char astronaut_id, int num_aliens, int token) {
     int ch = getch();
-    Message msg = {0, 0, 0, 0, 0};
+    Message msg = {0};
     msg.astronaut_id = astronaut_id;
+    msg.num_aliens = num_aliens;
+    msg.token = token;
 
-    while ((ch != 'q') && (ch != 'Q')) {
+    while ((ch != 'q') && (ch != 'Q')) {      
         
         switch (ch) {
             case KEY_UP:
@@ -69,7 +71,9 @@ int main() {
     zmq_connect(socket, SOCKET_ADDRESS_CLIENT);
 
     // Send connect message
-    Message msg = {ASTRONAUT_CONNECT, 0, 0, 0, 0};
+    Message msg = {0};
+    msg.type = ASTRONAUT_CONNECT;
+    msg.num_aliens = MAX_ALIENS;
     zmq_send(socket, &msg, sizeof(msg), 0);
     zmq_recv(socket, &msg, sizeof(msg), 0);
     if (msg.type == REFUSED_CONNECTION){
@@ -83,13 +87,15 @@ int main() {
     }
 
     char astronaut_id = msg.astronaut_id;
+    int num_aliens = msg.num_aliens;
+    int token = msg.token;
     //int score = msg.score;
     //mvprintw(0, 0, "Connected as astronaut %c with score %i\n", astronaut_id, score);
     mvprintw(0, 0, "Connected as astronaut %c\n", astronaut_id);
     refresh();
 
     // Handle user input
-    handle_input(socket, astronaut_id);
+    handle_input(socket, astronaut_id, num_aliens, token);
 
     // Cleanup
     zmq_close(socket);

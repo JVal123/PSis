@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <stdbool.h>
 #include "definitions.h"
 
 Astronaut astronauts[MAX_PLAYERS]; // Array to store astronaut data for each player
@@ -13,67 +14,77 @@ Alien aliens[MAX_ALIENS]; // Array to store alien data
 int num_aliens; // Counter to keep track of the number of aliens currently in the game
 bool occupied[20][20]; // Grid to keep track of aliens position, when initializing them and updating their position
 
+//
+#define MAX_ZAPPED 100
+int zapped_positions[MAX_ZAPPED][2]; // To store (x, y) of zapped aliens
+int zapped_index[MAX_ZAPPED];
+int zapped_count;                // Counter for zapped aliens
+//
 
 // Pointers to the arena and score windows for ncurses UI
 WINDOW *arena_win;
 WINDOW *score_win;
 
-void define_initial_position(Astronaut *astronaut) {
+void define_initial_position(Astronaut *astronaut, int token) {
     
     // Define initial positions based on the astronaut's id and the astronaut_counter
     // Astronaut A
-    if (astronaut_counter == 0) {
+    if (astronaut->id=='A') {
         astronaut->x = 1;
         astronaut->y = rand() % 16 + 3;
     }
     // Astronaut B
-    else if (astronaut_counter == 1) {
+    else if (astronaut->id=='B') {
         astronaut->x = rand() % 16 + 3;
         astronaut->y = 1;
     }
     // Astronaut C
-    else if (astronaut_counter == 2) {
+    else if (astronaut->id=='C') {
         astronaut->x = 20;
         astronaut->y = rand() % 16 + 3;
     }
     // Astronaut D
-    else if (astronaut_counter == 3) {
+    else if (astronaut->id=='D') {
         astronaut->x = rand() % 16 + 3;
         astronaut->y = 20;
     }
     // Astronaut E
-    else if (astronaut_counter == 4) { 
+    else if (astronaut->id=='E') { 
         astronaut->x = 2;
         astronaut->y = rand() % 16 + 3;
     }
     // Astronaut F
-    else if (astronaut_counter == 5) {
+    else if (astronaut->id=='F') {
         astronaut->x = rand() % 16 + 3;
         astronaut->y = 2;
     }
     // Astronaut G
-    else if (astronaut_counter == 6) {
+    else if (astronaut->id=='G') {
         astronaut->x = 19;
         astronaut->y = rand() % 16 + 3;
     }
     // Astronaut H
-    else if (astronaut_counter == 7) {
+    else if (astronaut->id=='H') {
         astronaut->x = rand() % 16 + 3;
         astronaut->y = 19;
     }
 
     // Set additional fields for the astronaut
     astronaut->score = 0;
-    astronaut->active = 1;
-    astronauts->last_zap = 0;
-    astronauts->end_stun = 0;
+    astronaut->token = token;
+    astronaut->last_zap = 0;
+    astronaut->end_stun = 0;
 }
 
 void initialize_astronaut(char *identifiers, Message *msg) {
 
     astronauts[astronaut_counter].id = *identifiers; // Assign an identifier to the astronaut's id field
 
-    define_initial_position(&astronauts[astronaut_counter]); // Defines initial position of astronaut and initialize its other fields
+    int token = rand(); // Generates a random token
+
+    msg->token = token;
+
+    define_initial_position(&astronauts[astronaut_counter], token); // Defines initial position of astronaut and initialize its other fields
 
     // Update message information with the newly created astronaut
     msg->astronaut_id = astronauts[astronaut_counter].id;
@@ -84,6 +95,19 @@ void initialize_astronaut(char *identifiers, Message *msg) {
     // Increment the astronaut counter to keep track of how many astronauts have been initialized
     astronaut_counter += 1; 
     
+}
+
+bool check_token(Message *msg) {
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+            // Check if the astronaut ID matches and is active
+            if (astronauts[i].id == msg->astronaut_id) {
+                // Compare the tokens
+                return astronauts[i].token == msg->token;
+            }
+        }
+
+        // Astronaut ID not found or inactive
+        return false;    
 }
 
 void initialize_aliens() {
@@ -140,22 +164,26 @@ void update_aliens() {
     }
 }
 
-void copy_aliens_to_struct(AlienData *aliens_data) {
+void copy_aliens_to_struct(Message *aliens_data) {
+    aliens_data->num_aliens = num_aliens;
+    
     // Update the global aliens array
-    for(int i = 0; i < MAX_ALIENS; i++) {
+    for(int i = 0; i < num_aliens; i++) {
         aliens_data->aliens[i] = aliens[i]; // Copy received data
+        //printw("alien %i %i", aliens[i].x, aliens[i].y);
     }
     for (int i = 0; i < 20; i++) {
         for (int j = 0; j < 20; j++) {
             aliens_data->occupied[i][j] = occupied[i][j];
         }
     }
-    aliens_data->num_aliens = num_aliens;
 }
 
-void copy_aliens_from_struct(AlienData *aliens_data) {
+void copy_aliens_from_struct_child(Message *aliens_data) {
+    num_aliens = aliens_data->num_aliens;
+
     // Update the global aliens array
-    for(int i = 0; i < MAX_ALIENS; i++) {
+    for(int i = 0; i < num_aliens; i++) {
         aliens[i] = aliens_data->aliens[i]; // Copy received data
     }
     for (int i = 0; i < 20; i++) {
@@ -163,7 +191,54 @@ void copy_aliens_from_struct(AlienData *aliens_data) {
             occupied[i][j] = aliens_data->occupied[i][j];
         }
     }
-    num_aliens = aliens_data->num_aliens;
+}
+
+void copy_aliens_from_struct(Message *aliens_data) {
+    // im not removing the aliens correctly according to theur indexes, 
+    //previously it was woeking while they were still bc i was removing according to their coordinates
+    
+    if (zapped_count>0){
+        
+        //mvprintw(5, 5, "O");
+        //refresh();
+        //sleep(1);
+
+
+        int num_he_think_has = aliens_data->num_aliens;
+        for (int i = 0; i < zapped_count; i++) {
+            int index_to_remove = zapped_index[i];
+
+            //mvprintw(6, 6, "L");
+            //refresh();
+            //sleep(1);
+
+            for (int j = index_to_remove; j < num_he_think_has; j++) {
+                aliens_data->aliens[j] = aliens_data->aliens[j + 1];  // Shift left
+                //mvprintw(7, 7, "A");
+                //refresh();
+                //sleep(1);
+            }
+            num_he_think_has--;
+
+        }
+        for (int i = 0; i < num_aliens; i++) {
+            aliens[i] = aliens_data->aliens[i];
+        }
+
+        //mvprintw(8, 8, "!");
+        //refresh();
+        //sleep(1);
+        aliens_data->num_aliens = num_aliens;
+        zapped_count=0;
+
+    }
+    else{
+        num_aliens = aliens_data->num_aliens;
+        for (int i = 0; i < num_aliens; i++) {
+            aliens[i] = aliens_data->aliens[i];
+        }
+        aliens_data->num_aliens = num_aliens;
+    }   
 }
 
 Astronaut *find_astronaut_by_id(Astronaut astronauts[], char id) {
@@ -199,6 +274,8 @@ void update_astronaut(Astronaut *astronaut, Message *msg) {
 }
 
 void zap(Astronaut *astronaut){
+    
+
     time_t current_time = time(NULL); // Get current time
     if (current_time == (time_t)-1) {
         perror("Error: failed to get current time");
@@ -207,17 +284,25 @@ void zap(Astronaut *astronaut){
 
     // Check if 3 seconds have passed since the last zap and if the astronaut is not stunned
     if (difftime(current_time, astronaut->last_zap) >= 3 && difftime(time(NULL), astronaut->end_stun) > 0) {
-        
+    zapped_count = 0;
+
         // Process zap in vertical and horizontal directions
         for (int i = 3; i < GRID_SIZE-1; i++) {
             int occupied_v = 0; // Flag to track if there is an alien in the vertical zap path (same column as astronaut)
             int occupied_h = 0; // Flag to track if there is an alien in the horizontal zap path (same row as astronaut)
+            
 
             for (int j = 0; j < num_aliens; j++) {
 
                 // Vertical zap (for specific astronaut IDs)
                 if(astronaut->id=='A'||astronaut->id=='C'||astronaut->id=='E'||astronaut->id=='G'){
                     if (aliens[j].x == i && aliens[j].y == astronaut->y) {
+                        //zapped_positions[zapped_count][0] = aliens[j].x;
+                        //zapped_positions[zapped_count][1] = aliens[j].y;
+                        //occupied[aliens[j].y - 1][aliens[j].x - 1] = false;
+                        zapped_index[zapped_count] = j;
+                        zapped_count+=1;
+
                         occupied_h = 1;
                         astronaut->score+=1;
                         // Shift aliens in array after one is removed
@@ -231,6 +316,12 @@ void zap(Astronaut *astronaut){
                 // Horizontal zap (for other astronaut IDs)
                 else if(astronaut->id=='B'||astronaut->id=='D'||astronaut->id=='F'||astronaut->id=='H'){
                     if (aliens[j].x == astronaut->x && aliens[j].y == i) {
+                        //zapped_positions[zapped_count][0] = aliens[j].x;
+                        //zapped_positions[zapped_count][1] = aliens[j].y;
+                        zapped_index[zapped_count] = j;
+                        zapped_count+=1;
+                        //occupied[aliens[j].y - 1][aliens[j].x - 1] = false;
+
                         occupied_v = 1;
                         astronaut->score+=1;
                         // Shift aliens in array after one is removed
@@ -326,6 +417,7 @@ void game_over(){
         if (astronauts[i].score > highest_score) {
             highest_score = astronauts[i].score;
             highest_score_astronaut = &astronauts[i];
+            tie_count = 0;
         }
         else if (astronauts[i].score == highest_score) {
             tie_count++; // Increment tie count if another astronaut has the same score
@@ -354,20 +446,15 @@ void game_over(){
 
 void disconnect_astronaut(Message *msg) {
     for (int i = 0; i < MAX_PLAYERS; i++) {
-        if (astronauts[i].id == msg->astronaut_id && astronauts[i].active) {
-            astronauts[i].active = 0; // Mark astronaut as inactive
-
-            //Dields are cleared for robustness
-            astronauts[i].id = 0;
-            astronauts[i].x = 0;
-            astronauts[i].y = 0;
-            astronauts[i].score = 0;
-
+        if (astronauts[i].id == msg->astronaut_id) {
+            for (int j = i; j < MAX_PLAYERS - 1; j++) {
+                astronauts[j] = astronauts[j + 1]; 
+            }
+            astronaut_counter--;
             return;
         }
     }
 }
-
 
 void game_loop(void *context) {
     // Create a ZeroMQ REP (reply) socket for communication with the client
@@ -397,24 +484,29 @@ void game_loop(void *context) {
     }
     usleep(10000); // Small delay to allow binding to complete
 
-    void *aliens_socket = zmq_socket(context, ZMQ_REP);
-    zmq_bind(aliens_socket, SOCKET_ADDRESS_PARENT);
+    //void *aliens_socket = zmq_socket(context, ZMQ_REP);
+    //zmq_bind(aliens_socket, SOCKET_ADDRESS_PARENT);
 
     Message msg; // Declare a message structure to receive data from the client
     Update_Message display_msg; // Declare a message for the display updates
     astronaut_counter = 0; // Initialize astronaut counter
     Astronaut *selected_astronaut; // Declare a pointer to store the currently selected astronaut
     char identifiers[8] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'}; // Array of identifiers used to assign unique IDs to astronauts (A-H)
+    char free_id = '\0'; // Initialize a variable to store the first free ID
+    zapped_count = 0;
 
     // Structure to receive alien data
-    AlienData aliens_data;
+    //AlienData aliens_data;
 
     // Main game loop
     while (1) {
 
-        zmq_recv(aliens_socket, &aliens_data, sizeof(aliens_data), 0);
-        copy_aliens_from_struct(&aliens_data);
-        draw(); // Redraw the windows   
+        //zmq_recv(aliens_socket, &aliens_data, sizeof(aliens_data), 0);
+        //copy_aliens_from_struct(&aliens_data);
+        //draw(); // Redraw the windows 
+        //create_display(&display_msg); // Create the outer-space-display update message
+        //usleep(10000);
+        //zmq_send(pub_socket, &display_msg, sizeof(display_msg), 0); // Publish the update  
 
         // Receive a message from the client (blocking call)
         int recv_status = zmq_recv(socket, &msg, sizeof(msg), 0);
@@ -431,12 +523,32 @@ void game_loop(void *context) {
                     zmq_send(socket, &msg, sizeof(msg), 0);
                     continue; // Skip the remaining code for this iteration
                 }
+
+                // Find the first available identifier that is not used by any astronaut
+                for (int i = 0; i < 8; i++) {
+                    int id_in_use = 0; // Flag to check if the ID is in use
+                    for (int j = 0; j < MAX_PLAYERS; j++) {
+                        if (astronauts[j].id == identifiers[i]) {
+                            id_in_use = 1; // ID is currently in use
+                            break;
+                        }
+                    }
+                    if (!id_in_use) {
+                        free_id = identifiers[i];
+                        break; // Found the first available ID
+                    }
+                }
+
                 // When an astronaut connects, initialize their data
-                initialize_astronaut(&identifiers[astronaut_counter], &msg);
+                initialize_astronaut(&free_id, &msg);
                 break;
 
             case ASTRONAUT_MOVEMENT:
                 // Update astronaut movement based on received data
+                if (check_token(&msg) == false) {
+                    break;
+                }
+
                 selected_astronaut = find_astronaut_by_id(astronauts, msg.astronaut_id); // Find the astronaut by ID in the astronauts array
                 update_astronaut(selected_astronaut, &msg);
 
@@ -448,14 +560,33 @@ void game_loop(void *context) {
 
             case ASTRONAUT_ZAP:
                 // Handle an astronaut zapping another astronaut or target
+                if (check_token(&msg) == false) {
+                    break;
+                }
+
                 selected_astronaut = find_astronaut_by_id(astronauts, msg.astronaut_id); // Find the astronaut by ID in the astronauts array
                 zap(selected_astronaut);
+
+                //copy_aliens_to_struct(&msg);
+
                 create_display(&display_msg); // Create the outer-space-display update message
                 usleep(10000);
                 zmq_send(pub_socket, &display_msg, sizeof(display_msg), 0); // Publish the update
                 usleep(500000); // 0.5s delay to show the zap line
 
                 draw(); // Redraw the windows
+                //usleep(500000);
+                create_display(&display_msg); // Create the outer-space-display update message
+                usleep(10000);
+                zmq_send(pub_socket, &display_msg, sizeof(display_msg), 0); // Publish the update
+                break;
+
+            case ALIENS_UPDATE:
+                //We want to update the positions of the aliens
+                //copy_aliens_to_struct(&msg);
+                
+                copy_aliens_from_struct(&msg);
+                draw();
                 create_display(&display_msg); // Create the outer-space-display update message
                 usleep(10000);
                 zmq_send(pub_socket, &display_msg, sizeof(display_msg), 0); // Publish the update
@@ -463,6 +594,10 @@ void game_loop(void *context) {
 
             case ASTRONAUT_DISCONNECT:
                 // Handle astronaut disconnection (e.g., cleanup resources, remove from list)
+                if (check_token(&msg) == false) {
+                        break;
+                }
+                
                 disconnect_astronaut(&msg);
                 break;
             default:
@@ -470,8 +605,8 @@ void game_loop(void *context) {
                 break;
         }
 
-        copy_aliens_to_struct(&aliens_data);
-        zmq_send(aliens_socket, &aliens_data, sizeof(aliens_data), 0); // Reply with alien data updated
+        //copy_aliens_to_struct(&aliens_data);
+        //zmq_send(aliens_socket, &aliens_data, sizeof(aliens_data), 0); // Reply with alien data updated
 
         // Reply back to the client
         zmq_send(socket, &msg, sizeof(msg), 0);
@@ -493,7 +628,7 @@ void game_loop(void *context) {
     // Close the ZeroMQ sockets when exiting the loop
     zmq_close(socket);
     zmq_close(pub_socket);
-    zmq_close(aliens_socket);
+    //zmq_close(aliens_socket);
 }
 
 int main() {
@@ -533,7 +668,6 @@ int main() {
     refresh();
     wrefresh(arena_win);
     wrefresh(score_win);
-
     
     srand(time(NULL));
 
@@ -559,24 +693,39 @@ int main() {
     if (process == 0) {
         // Child process: Alien management
         void *socket = zmq_socket(context, ZMQ_REQ); // REP socket
-        zmq_connect(socket, SOCKET_ADDRESS_CHILD); // Bind to a port
+        zmq_connect(socket, SOCKET_ADDRESS_CLIENT); // Bind to a port
 
+    
         initialize_aliens(); // Initialize aliens in child process
-        AlienData aliens_data;
+        Message aliens_data = {0};
         copy_aliens_to_struct(&aliens_data);
 
+        aliens_data.type = ALIENS_UPDATE;
+
         zmq_send(socket, &aliens_data, sizeof(aliens_data), 0);
-        zmq_recv(socket, &aliens_data, sizeof(aliens_data), 0);
-        copy_aliens_from_struct(&aliens_data);
+        //zmq_recv(socket, &aliens_data, sizeof(aliens_data), 0);
+        //copy_aliens_from_struct(&aliens_data);
+
+        Message msg;
 
         while (1) {
             // Send request from the parent
+            
+            //update_aliens(); //updates the positions of aliens
+            //copy_aliens_to_struct(&aliens_data);
+            //zmq_send(socket, &aliens_data, sizeof(aliens_data), 0);
+            //sleep(1);        // Update aliens every second
+            zmq_recv(socket, &msg, sizeof(msg), 0);
+            //if (msg.type == ASTRONAUT_ZAP ||msg.type == ALIENS_UPDATE){
+            copy_aliens_from_struct_child(&msg);
             update_aliens(); //updates the positions of aliens
-            copy_aliens_to_struct(&aliens_data);
-            zmq_send(socket, &aliens_data, sizeof(aliens_data), 0);
+            copy_aliens_to_struct(&msg);
+
+            msg.type = ALIENS_UPDATE;
+            zmq_send(socket, &msg, sizeof(msg), 0);
             sleep(1);        // Update aliens every second
-            zmq_recv(socket, &aliens_data, sizeof(aliens_data), 0);
-            copy_aliens_from_struct(&aliens_data);
+            //}
+           
         }
 
         zmq_close(socket);
