@@ -412,13 +412,17 @@ void game_loop(void *context) {
     // Main game loop
     while (1) {
 
+        zmq_recv(aliens_socket, &aliens_data, sizeof(aliens_data), 0);
+        copy_aliens_from_struct(&aliens_data);
+        draw(); // Redraw the windows   
+
         // Receive a message from the client (blocking call)
         int recv_status = zmq_recv(socket, &msg, sizeof(msg), 0);
         if (recv_status == -1) {
             perror("Failed to receive message");
             break;  // Or handle the error more gracefully, like retrying or quitting the loop
-        }        
-        
+        }
+
         // Handle the received message type
         switch (msg.type) {
             case ASTRONAUT_CONNECT:
@@ -468,8 +472,6 @@ void game_loop(void *context) {
 
         copy_aliens_to_struct(&aliens_data);
         zmq_send(aliens_socket, &aliens_data, sizeof(aliens_data), 0); // Reply with alien data updated
-        zmq_recv(aliens_socket, &aliens_data, sizeof(aliens_data), 0);
-        copy_aliens_from_struct(&aliens_data);
 
         // Reply back to the client
         zmq_send(socket, &msg, sizeof(msg), 0);
@@ -491,6 +493,7 @@ void game_loop(void *context) {
     // Close the ZeroMQ sockets when exiting the loop
     zmq_close(socket);
     zmq_close(pub_socket);
+    zmq_close(aliens_socket);
 }
 
 int main() {
