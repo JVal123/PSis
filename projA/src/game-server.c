@@ -194,29 +194,13 @@ void copy_aliens_from_struct_child(Message *aliens_data) {
 }
 
 void copy_aliens_from_struct(Message *aliens_data) {
-    // im not removing the aliens correctly according to theur indexes, 
-    //previously it was woeking while they were still bc i was removing according to their coordinates
-    
     if (zapped_count>0){
         
-        //mvprintw(5, 5, "O");
-        //refresh();
-        //sleep(1);
-
-
         int num_he_think_has = aliens_data->num_aliens;
         for (int i = 0; i < zapped_count; i++) {
             int index_to_remove = zapped_index[i];
-
-            //mvprintw(6, 6, "L");
-            //refresh();
-            //sleep(1);
-
             for (int j = index_to_remove; j < num_he_think_has; j++) {
                 aliens_data->aliens[j] = aliens_data->aliens[j + 1];  // Shift left
-                //mvprintw(7, 7, "A");
-                //refresh();
-                //sleep(1);
             }
             num_he_think_has--;
 
@@ -224,13 +208,8 @@ void copy_aliens_from_struct(Message *aliens_data) {
         for (int i = 0; i < num_aliens; i++) {
             aliens[i] = aliens_data->aliens[i];
         }
-
-        //mvprintw(8, 8, "!");
-        //refresh();
-        //sleep(1);
         aliens_data->num_aliens = num_aliens;
         zapped_count=0;
-
     }
     else{
         num_aliens = aliens_data->num_aliens;
@@ -297,9 +276,6 @@ void zap(Astronaut *astronaut){
                 // Vertical zap (for specific astronaut IDs)
                 if(astronaut->id=='A'||astronaut->id=='C'||astronaut->id=='E'||astronaut->id=='G'){
                     if (aliens[j].x == i && aliens[j].y == astronaut->y) {
-                        //zapped_positions[zapped_count][0] = aliens[j].x;
-                        //zapped_positions[zapped_count][1] = aliens[j].y;
-                        //occupied[aliens[j].y - 1][aliens[j].x - 1] = false;
                         zapped_index[zapped_count] = j;
                         zapped_count+=1;
 
@@ -316,11 +292,8 @@ void zap(Astronaut *astronaut){
                 // Horizontal zap (for other astronaut IDs)
                 else if(astronaut->id=='B'||astronaut->id=='D'||astronaut->id=='F'||astronaut->id=='H'){
                     if (aliens[j].x == astronaut->x && aliens[j].y == i) {
-                        //zapped_positions[zapped_count][0] = aliens[j].x;
-                        //zapped_positions[zapped_count][1] = aliens[j].y;
                         zapped_index[zapped_count] = j;
                         zapped_count+=1;
-                        //occupied[aliens[j].y - 1][aliens[j].x - 1] = false;
 
                         occupied_v = 1;
                         astronaut->score+=1;
@@ -398,8 +371,8 @@ void draw() {
 
 void create_display(Update_Message *display_msg){
     // Loop through each cell in the grid
-    for(int i=0; i<GRID_SIZE; i++){
-        for(int j=0; j<GRID_SIZE; j++){
+    for(int i=0; i<GRID_SIZE+1; i++){
+        for(int j=0; j<GRID_SIZE+1; j++){
             // Store in display message structure the character at position (j, i)
             display_msg->arena_grid[i][j]=mvwinch(arena_win,i,j);
             display_msg->score_grid[i][j]=mvwinch(score_win,i,j);
