@@ -11,12 +11,12 @@ char arena_grid[GRID_SIZE+1][GRID_SIZE+1];  // Array representing the arena grid
 char score_grid[GRID_SIZE+1][GRID_SIZE+1];  // Array representing the score grid
 
 int main() {
-    
+
     // Create a ZeroMQ context
     void *context = zmq_ctx_new();
     if (context == NULL) {
         perror("Error creating ZeroMQ context");
-        return 1;
+        exit(1);
     }
     
     // Create a ZeroMQ subscriber socket
@@ -24,7 +24,7 @@ int main() {
     if (subscriber == NULL) {
         perror("Failed to create SUB socket");
         zmq_ctx_destroy(context);  // Clean up before exiting
-        return 1;
+        exit(1);
     }
 
     // Connect to the server to receive updates
@@ -32,7 +32,7 @@ int main() {
         perror("Failed to connect SUB socket");
         zmq_close(subscriber);
         zmq_ctx_destroy(context);
-        return 1; 
+        exit(1);
     }
 
     // Set the socket to subscribe to all messages
@@ -40,13 +40,16 @@ int main() {
         perror("Failed to subscribe SUB socket to all messages");
         zmq_close(subscriber);
         zmq_ctx_destroy(context);
-        return 1;
+        exit(1);
     }
 
     Update_Message msg; // Structure to hold the update message
   
     // Initialize the ncurses library for terminal handling
-    initscr();
+    if (initscr() == NULL) {
+        perror("Error initializing ncurses");
+        exit(1);
+    }
     cbreak();
     noecho();
     curs_set(FALSE);
@@ -57,27 +60,25 @@ int main() {
         mvprintw(0, i+1, "%d", i % 10);
     }
 
-
     // Create windows for the arena display and draw its borders
     arena_win = newwin(GRID_SIZE+2, GRID_SIZE+2, 1, 1);
     if (arena_win == NULL) {
-        perror("Error creating arena window");
         endwin();
-        return 1;
+        perror("Error creating arena window");
+        exit(1);
     }
     box(arena_win, 0, 0);
     
     // Create windows for the score display and draw its borders
     score_win = newwin(GRID_SIZE+2, GRID_SIZE+2, 1, GRID_SIZE + 5);
     if (score_win == NULL) {
-        perror("Error creating score window");
-        delwin(arena_win);
         endwin();
-        return 1;
+        perror("Error creating score window");
+        exit(1);
     }
     box(score_win, 0, 0);
 
-    // Refresh windows to reflect changes
+    // Refresh the windows to reflect changes
     refresh();
     wrefresh(arena_win);
     wrefresh(score_win);
@@ -93,11 +94,7 @@ int main() {
     // Main loop to handle incoming updates
     while (1) {
        // Receive the update message from the publisher (game-server)
-        int recv_size = zmq_recv(subscriber, &msg, sizeof(msg), 0);
-        if (recv_size == -1) {
-            perror("Failed to receive message");
-            break;
-        }
+        zmq_recv(subscriber, &msg, sizeof(msg), 0);
 
         // Update the arena and score grids based on the received message
         for(int i=1; i<GRID_SIZE+1; i++){

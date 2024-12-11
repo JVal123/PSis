@@ -9,6 +9,7 @@
 
 // Function to handle user input and send messages to the server
 void handle_input(void *socket, char astronaut_id, int num_aliens, int token) {
+
     int ch = getch(); // Get user input
     Message msg = {0}; // Initialize a Message struct to zero
     msg.astronaut_id = astronaut_id; // Set astronaut ID
@@ -48,21 +49,12 @@ void handle_input(void *socket, char astronaut_id, int num_aliens, int token) {
                 ch = getch();
                 continue; 
         }
+
         // Send the message to the server via ZeroMQ socket
         zmq_send(socket, &msg, sizeof(msg), 0);
-        /*if (zmq_send(socket, &msg, sizeof(msg), 0) == -1) {
-            mvprintw(2, 0, "Failed to send message.");
-            refresh();
-            break;
-        }*/
 
         // Receive the response from the server
         zmq_recv(socket, &msg, sizeof(msg), 0);
-        /*if (zmq_recv(socket, &msg, sizeof(msg), 0) == -1) {
-            mvprintw(2, 0, "Failed to receive message.");
-            refresh();
-            break;
-        }*/
 
         // Display updated score
         mvprintw(1, 0, "Score: %d\n", msg.score);
@@ -83,7 +75,7 @@ int main() {
     // Initialize the ncurses library for terminal handling
     if (initscr() == NULL) {
         perror("Error initializing ncurses");
-        return 1;
+        exit(1);
     }
     noecho();
     cbreak();
@@ -94,7 +86,7 @@ int main() {
     if (context == NULL) {
         perror("Error creating ZeroMQ context");
         endwin();
-        return 1;
+        exit(1);
     }
     void *socket = zmq_socket(context, ZMQ_REQ); // Create a request (REQ) socket
     if (!socket) {
@@ -106,7 +98,7 @@ int main() {
         perror("Failed to connect SUB socket");
         zmq_close(socket);
         zmq_ctx_destroy(context);
-        return 1; 
+        exit(1);
     }
     
     // Initialize the connect message
@@ -115,18 +107,18 @@ int main() {
     msg.num_aliens = MAX_ALIENS;
 
     if (zmq_send(socket, &msg, sizeof(msg), 0) == -1) { // Send the connect message
+        endwin();
         perror("Failed to send connect message");
         zmq_close(socket);
         zmq_ctx_destroy(context);
-        endwin();
         exit(1);
     }
     
     if (zmq_recv(socket, &msg, sizeof(msg), 0) == -1) { // Receive the server's response
+        endwin();
         perror("Failed to receive message");
         zmq_close(socket);
         zmq_ctx_destroy(context);
-        endwin();
         exit(1);
     }
 
@@ -138,7 +130,7 @@ int main() {
         zmq_close(socket);
         zmq_ctx_destroy(context);
         endwin();
-        exit(1);
+        return 1;
     }
 
     // Connection successful: display astronaut ID and proceed
