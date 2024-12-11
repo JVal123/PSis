@@ -3,7 +3,9 @@
 # Compiler and Flags
 CC = gcc
 CFLAGS = -Wall -Wextra -lncurses -lzmq -Ishared
-SRC_DIR = src
+ASTRONAUT_DIR = astronaut
+DISPLAY_DIR = display
+SERVER_DIR = server
 BUILD_DIR = build
 SHARED_DIR = shared
 
@@ -11,9 +13,9 @@ SHARED_DIR = shared
 TARGETS = game-server astronaut-client outer-space-display
 
 # Source Files
-GAME_SERVER_SRC = $(SRC_DIR)/game-server.c
-ASTRONAUT_CLIENT_SRC = $(SRC_DIR)/astronaut-client.c
-OUTER_SPACE_DISPLAY_SRC = $(SRC_DIR)/outer-space-display.c
+GAME_SERVER_SRC = $(SERVER_DIR)/game-server.c
+ASTRONAUT_CLIENT_SRC = $(ASTRONAUT_DIR)/astronaut-client.c
+OUTER_SPACE_DISPLAY_SRC = $(DISPLAY_DIR)/outer-space-display.c
 SHARED_HEADER = $(SHARED_DIR)/definitions.h
 
 # Output Files
